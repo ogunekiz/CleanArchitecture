@@ -1,7 +1,11 @@
+using CleanArchitecture.Application.Services;
 using CleanArchitecture.Persistence.Context;
+using CleanArchitecture.Persistence.Services;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Services.AddScoped<ICarService, CarService>();
 
 string connectionString = builder.Configuration.GetConnectionString("SqlServer");
 
@@ -9,6 +13,9 @@ builder.Services.AddDbContext<AppDbContext>(options => options.UseSqlServer(conn
 
 builder.Services.AddControllers()
     .AddApplicationPart(typeof(CleanArchitecture.Presentation.AssemblyReference).Assembly);
+
+builder.Services.AddMediatR(cfr => cfr.RegisterServicesFromAssembly(typeof(CleanArchitecture.Application.AssemblyReference).Assembly));
+
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
