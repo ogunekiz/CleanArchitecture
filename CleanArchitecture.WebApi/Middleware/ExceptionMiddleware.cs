@@ -1,10 +1,19 @@
 ﻿
+using CleanArchitecture.Domain.Entities;
+using CleanArchitecture.Persistence.Context;
 using FluentValidation;
 
 namespace CleanArchitecture.WebApi.Middleware;
 
 public sealed class ExceptionMiddleware : IMiddleware
 {
+    private readonly AppDbContext _context;
+
+    public ExceptionMiddleware(AppDbContext context)
+    {
+        _context = context;
+    }
+
     public async Task InvokeAsync(HttpContext context, RequestDelegate next)
     {
         try
@@ -13,6 +22,7 @@ public sealed class ExceptionMiddleware : IMiddleware
         }
         catch (Exception ex)
         {
+            await LogExceptionToDatabaseAsync(ex, context.Request);
             await HandleExceptionAsync(context, ex);
         }
     }
@@ -37,4 +47,19 @@ public sealed class ExceptionMiddleware : IMiddleware
             StatusCode = context.Response.StatusCode
         }.ToString());
     }
+
+    private async Task LogExceptionToDatabaseAsync(Exception ex, HttpRequest request)
+    {
+        ErrorLog errorLog = new()
+        {
+            ErrorMEssage = ex.Message,
+            StackTrace = ex.StackTrace,
+            RequestPath = request.Path,
+            RequestMethod = request.Method,
+            Timestamp = DateTime.Now,
+        };
+        await _context.Set<ErrorLog>().AddAsync(errorLog, default);
+        await _context.SaveChangesAsync(default);
+    }
+
 }
